@@ -1,0 +1,372 @@
+/* ─────────────────────────────────────────────
+   HomeScreen.css
+   Matches the LoadingScreen dark / orange-cyan
+   design system.
+───────────────────────────────────────────── */
+
+/* ROOT */
+.hs-root {
+	position: relative;
+	min-height: 100svh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	padding: 0 0 12px;
+	box-sizing: border-box;
+	background:
+		radial-gradient(ellipse at 50% 0%, rgba(255, 178, 76, 0.18), transparent 48%),
+		radial-gradient(ellipse at 100% 100%, rgba(0, 195, 255, 0.13), transparent 45%),
+		linear-gradient(180deg, #07090f 0%, #0d1220 55%, #050810 100%);
+	font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* AMBIENT GLOWS */
+.hs-glow {
+	position: absolute;
+	width: 420px;
+	height: 420px;
+	border-radius: 50%;
+	pointer-events: none;
+}
+
+.hs-glow--tl {
+	top: -140px;
+	left: -100px;
+	background: rgba(247, 147, 30, 0.14);
+	filter: blur(80px);
+}
+
+.hs-glow--br {
+	bottom: -120px;
+	right: -90px;
+	background: rgba(0, 195, 255, 0.11);
+	filter: blur(70px);
+}
+
+/* ── TOP BAR ── */
+.hs-topbar {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14px 18px 10px;
+}
+
+/* Profile button */
+.hs-profile-btn {
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	background: rgba(247, 147, 30, 0.10);
+	border: 1.5px solid rgba(247, 147, 30, 0.38);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: background 0.18s, border-color 0.18s;
+}
+
+.hs-profile-btn:hover {
+	background: rgba(247, 147, 30, 0.18);
+	border-color: rgba(247, 147, 30, 0.6);
+}
+
+.hs-profile-btn__icon {
+	font-size: 22px;
+	color: rgba(247, 147, 30, 0.9);
+}
+
+/* Resource chips */
+.hs-resources {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+}
+
+.hs-chip {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	border-radius: 999px;
+	padding: 5px 11px 5px 7px;
+	border: 1px solid rgba(255, 255, 255, 0.09);
+	backdrop-filter: blur(8px);
+}
+
+.hs-chip--gold { background: rgba(247, 147, 30, 0.13); border-color: rgba(247, 147, 30, 0.28); }
+.hs-chip--blue { background: rgba(0, 195, 255, 0.10); border-color: rgba(0, 195, 255, 0.25); }
+.hs-chip--red  { background: rgba(255, 60, 90, 0.10);  border-color: rgba(255, 60, 90, 0.25);  }
+
+.hs-chip__icon { font-size: 13px; }
+.hs-chip--gold .hs-chip__icon { color: #f7931e; }
+.hs-chip--blue .hs-chip__icon { color: #00c3ff; }
+.hs-chip--red  .hs-chip__icon { color: #ff4d6d; }
+
+.hs-chip__val {
+	font-size: 12px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.90);
+	letter-spacing: 0.02em;
+}
+
+/* Notification button */
+.hs-notif-btn {
+	position: relative;
+	width: 42px;
+	height: 42px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.09);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: background 0.18s;
+}
+
+.hs-notif-btn:hover { background: rgba(255, 255, 255, 0.10); }
+
+.hs-notif-btn__icon {
+	font-size: 21px;
+	color: rgba(255, 255, 255, 0.70);
+}
+
+.hs-notif-btn__dot {
+	position: absolute;
+	top: 9px;
+	right: 10px;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: #f7931e;
+	border: 1.5px solid #07090f;
+}
+
+/* ── MAIN STAGE ── */
+.hs-stage {
+	position: relative;
+	z-index: 2;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 8px 18px 8px;
+	gap: 10px;
+}
+
+.hs-stage__eyebrow {
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: rgba(255, 255, 255, 0.30);
+}
+
+/* Car card */
+.hs-car-card {
+	position: relative;
+	width: min(340px, 90vw);
+	aspect-ratio: 16 / 9;
+	border-radius: 24px;
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.09);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+
+.hs-car-card__shine {
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.06), transparent 65%);
+	pointer-events: none;
+}
+
+.hs-car-svg {
+	width: 75%;
+	height: auto;
+	filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.55));
+	animation: hs-float 3.2s ease-in-out infinite;
+}
+
+@keyframes hs-float {
+	0%, 100% { transform: translateY(0px);   }
+	50%       { transform: translateY(-7px);  }
+}
+
+.hs-car-card__road {
+	position: absolute;
+	bottom: 16px;
+	left: 8%;
+	right: 8%;
+	height: 2px;
+	border-radius: 2px;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(247, 147, 30, 0.5),
+		rgba(0, 195, 255, 0.4),
+		transparent
+	);
+}
+
+/* Car name */
+.hs-car-name {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 800;
+	color: rgba(255, 255, 255, 0.90);
+	letter-spacing: 0.07em;
+	text-transform: uppercase;
+}
+
+/* Stat pills */
+.hs-stat-row {
+	display: flex;
+	gap: 10px;
+}
+
+.hs-stat-pill {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.09);
+	border-radius: 999px;
+	padding: 5px 14px;
+}
+
+.hs-stat-pill__dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.hs-stat-pill__dot--gold { background: #f7931e; }
+
+.hs-stat-pill__icon {
+	font-size: 14px;
+	color: #00c3ff;
+}
+
+.hs-stat-pill__label {
+	font-size: 10px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.38);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+}
+
+.hs-stat-pill__val {
+	font-size: 13px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.88);
+}
+
+/* Play button */
+.hs-play-btn {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: min(220px, 70vw);
+	height: 54px;
+	border-radius: 999px;
+	border: none;
+	cursor: pointer;
+	justify-content: center;
+	font-size: 17px;
+	font-weight: 800;
+	color: #fff;
+	letter-spacing: 0.13em;
+	text-transform: uppercase;
+	background: linear-gradient(135deg, #f7931e 0%, #e6700d 100%);
+	box-shadow:
+		0 0 30px rgba(247, 147, 30, 0.38),
+		0 4px 16px rgba(0, 0, 0, 0.38);
+	transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.hs-play-btn:hover {
+	transform: scale(1.04);
+	box-shadow:
+		0 0 44px rgba(247, 147, 30, 0.55),
+		0 6px 22px rgba(0, 0, 0, 0.42);
+}
+
+.hs-play-btn:active { transform: scale(0.97); }
+
+.hs-play-btn__icon { font-size: 16px; }
+
+/* ── BOTTOM NAV ── */
+.hs-nav {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	align-items: stretch;
+	justify-content: space-around;
+	margin: 6px 14px 0;
+	padding: 10px 6px;
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 22px;
+	backdrop-filter: blur(14px);
+}
+
+.hs-nav-item {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: 5px 8px;
+	border-radius: 14px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	transition: background 0.18s;
+}
+
+.hs-nav-item:hover { background: rgba(255, 255, 255, 0.06); }
+
+.hs-nav-item--active { background: rgba(247, 147, 30, 0.12); }
+
+.hs-nav-item__icon {
+	font-size: 22px;
+	color: rgba(255, 255, 255, 0.38);
+	transition: color 0.18s;
+}
+
+.hs-nav-item--active .hs-nav-item__icon { color: #f7931e; }
+
+.hs-nav-item__label {
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: rgba(255, 255, 255, 0.35);
+	transition: color 0.18s;
+}
+
+.hs-nav-item--active .hs-nav-item__label { color: #f7931e; }
+
+.hs-nav-divider {
+	width: 1px;
+	align-self: stretch;
+	background: rgba(255, 255, 255, 0.07);
+	margin: 4px 0;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+	.hs-chip__val  { font-size: 11px; }
+	.hs-chip       { padding: 4px 9px 4px 6px; }
+	.hs-car-name   { font-size: 14px; }
+	.hs-play-btn   { height: 48px; font-size: 15px; }
+	.hs-nav        { margin: 4px 10px 0; padding: 8px 4px; border-radius: 18px; }
+	.hs-nav-item__icon  { font-size: 20px; }
+	.hs-nav-item__label { font-size: 9px; }
+}
