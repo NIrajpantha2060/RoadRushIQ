@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
 	MdHome,
 	MdSettings,
@@ -18,14 +18,14 @@ import {
 import '../css/HomeScreen.css';
 
 const NAV_ITEMS = [
-	{ id: 'home',     Icon: MdHome,         label: 'Home'    },
-	{ id: 'garage',   Icon: FaCar,           label: 'Garage'  },
-	{ id: 'shop',     Icon: FaShoppingCart,  label: 'Shop'    },
-	{ id: 'iq',       Icon: FaBrain,         label: 'IQ'      },
-	{ id: 'settings', Icon: MdSettings,      label: 'Settings'},
+	{ id: 'home',     Icon: MdHome,        label: 'Home'     },
+	{ id: 'garage',   Icon: FaCar,          label: 'Garage'   },
+	{ id: 'shop',     Icon: FaShoppingCart, label: 'Shop'     },
+	{ id: 'iq',       Icon: FaBrain,        label: 'IQ'       },
+	{ id: 'settings', Icon: MdSettings,     label: 'Settings' },
 ];
 
-function HomeScreen() {
+function HomeScreen({ onPlay }) {
 	const [activeTab, setActiveTab] = useState('home');
 
 	return (
@@ -69,7 +69,6 @@ function HomeScreen() {
 				<div className="hs-car-card">
 					<div className="hs-car-card__shine" aria-hidden="true" />
 
-					{/* Inline SVG car */}
 					<svg
 						className="hs-car-svg"
 						viewBox="0 0 320 140"
@@ -116,7 +115,7 @@ function HomeScreen() {
 				</div>
 
 				{/* Play */}
-				<button className="hs-play-btn" aria-label="Play">
+				<button className="hs-play-btn" aria-label="Play" onClick={onPlay}>
 					<FaPlay className="hs-play-btn__icon" aria-hidden="true" />
 					<span>Play</span>
 				</button>
@@ -125,9 +124,8 @@ function HomeScreen() {
 			{/* ── BOTTOM NAV ── */}
 			<nav className="hs-nav" aria-label="Main navigation">
 				{NAV_ITEMS.map(({ id, Icon, label }, i) => (
-					<>
+					<React.Fragment key={id}>
 						<button
-							key={id}
 							className={`hs-nav-item${activeTab === id ? ' hs-nav-item--active' : ''}`}
 							onClick={() => setActiveTab(id)}
 							aria-label={label}
@@ -137,9 +135,9 @@ function HomeScreen() {
 							<span className="hs-nav-item__label">{label}</span>
 						</button>
 						{i < NAV_ITEMS.length - 1 && (
-							<div key={`div-${id}`} className="hs-nav-divider" aria-hidden="true" />
+							<div className="hs-nav-divider" aria-hidden="true" />
 						)}
-					</>
+					</React.Fragment>
 				))}
 			</nav>
 		</div>
