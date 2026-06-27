@@ -1,0 +1,191 @@
+/* ModeSelectModal.css */
+
+.msc-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: msc-fade-in 0.18s ease;
+}
+
+@keyframes msc-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Bottom sheet */
+.msc-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: #0d1220;
+  border-radius: 24px 24px 0 0;
+  padding: 12px 20px 40px;
+  animation: msc-slide-up 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@keyframes msc-slide-up {
+  from { transform: translateY(100%); opacity: 0.4; }
+  to   { transform: translateY(0);    opacity: 1;   }
+}
+
+.msc-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+
+.msc-eyebrow {
+  font-size: 11px;
+  font-family: system-ui, sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f7931e;
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.msc-heading {
+  font-size: 22px;
+  font-family: system-ui, sans-serif;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 20px;
+  line-height: 1.2;
+}
+
+/* Mode cards */
+.msc-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.msc-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #151d30;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+  width: 100%;
+}
+
+.msc-card:hover {
+  background: #1c2640;
+  border-color: rgba(247, 147, 30, 0.4);
+}
+
+.msc-card:active {
+  transform: scale(0.98);
+  background: #1e2a48;
+}
+
+/* Badge */
+.msc-badge {
+  position: absolute;
+  top: 12px;
+  right: 44px;
+  font-size: 10px;
+  font-family: system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f7931e;
+  background: rgba(247, 147, 30, 0.15);
+  border: 1px solid rgba(247, 147, 30, 0.35);
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+
+/* Icon area */
+.msc-card__icon-wrap {
+  flex-shrink: 0;
+  width: 56px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f7931e;
+  background: rgba(247, 147, 30, 0.06);
+  border-radius: 12px;
+  border: 1px solid rgba(247, 147, 30, 0.15);
+}
+
+.msc-mode-icon {
+  width: 40px;
+  height: 52px;
+}
+
+/* Text body */
+.msc-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.msc-card__label {
+  font-size: 17px;
+  font-family: system-ui, sans-serif;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.msc-card__sub {
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+  font-weight: 500;
+  color: #f7931e;
+  opacity: 0.85;
+  margin-bottom: 4px;
+}
+
+.msc-card__desc {
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.45;
+}
+
+/* Arrow */
+.msc-card__arrow {
+  flex-shrink: 0;
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.25);
+  line-height: 1;
+  margin-left: 4px;
+}
+
+/* Cancel */
+.msc-cancel {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 15px;
+  font-family: system-ui, sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.msc-cancel:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.65);
+}
