@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import IQBoxManager from '../IQBoxManager';
 
 // ── Road layout ────────────────────────────────
 const LANES      = 4;
@@ -96,6 +97,9 @@ export default class GameScene extends Phaser.Scene {
     }
     this.scene.bringToTop('UIScene');
 
+    // IQ Box system
+    this._iqManager = new IQBoxManager(this);
+
     // Score ticker
     this.time.addEvent({
       delay: 100, loop: true,
@@ -157,6 +161,9 @@ export default class GameScene extends Phaser.Scene {
     // Collisions
     this._checkCollisions();
 
+    // IQ Box update
+    this._iqManager.update(delta);
+
     // Speed display (km/h feel)
     this.registry.set('speed', Math.round(this.speed * 0.72));
   }
@@ -175,16 +182,12 @@ export default class GameScene extends Phaser.Scene {
     this.add.rectangle(W - sW / 2, H / 2, sW, H, 0x0a100a).setDepth(0);
 
     const halfW = this.roadWidth / 2;
-    // Left half — oncoming lanes (slightly darker)
     this.add.rectangle(this.roadLeft + halfW / 2,           H / 2, halfW, H, 0x1a1c30).setDepth(1);
-    // Right half — player lanes
     this.add.rectangle(this.roadLeft + halfW + halfW / 2,   H / 2, halfW, H, 0x1e2038).setDepth(1);
 
-    // Edge kerbs
     this.add.rectangle(this.roadLeft - 3,                   H / 2, 5, H, 0xffffff).setAlpha(0.22).setDepth(2);
     this.add.rectangle(this.roadLeft + this.roadWidth + 3,  H / 2, 5, H, 0xffffff).setAlpha(0.22).setDepth(2);
 
-    // Subtle texture
     for (let i = 0; i < 6; i++) {
       this.add.rectangle(
         this.roadLeft + (i + 1) * (this.roadWidth / 7),
@@ -208,7 +211,6 @@ export default class GameScene extends Phaser.Scene {
     this._dashCycle = dashH + gapH;
     this.laneDashes = [];
 
-    // Dashes between lane 0-1 (left side) and lane 2-3 (right side)
     const dashCols = [1, 3];
     for (const col of dashCols) {
       const x     = this.roadLeft + this.laneWidth * col;
@@ -229,13 +231,11 @@ export default class GameScene extends Phaser.Scene {
 
     for (const { dash, side } of this.laneDashes) {
       if (side === 'right') {
-        // Player side — dashes scroll down (same direction as traffic behind)
         dash.y += shift;
         if (dash.y > H + this._dashCycle) {
           dash.y -= count * this._dashCycle;
         }
       } else {
-        // Oncoming side — dashes scroll up
         dash.y -= shift;
         if (dash.y < -this._dashCycle) {
           dash.y += count * this._dashCycle;
@@ -264,7 +264,6 @@ export default class GameScene extends Phaser.Scene {
   _drawBike() {
     const g = new Phaser.GameObjects.Graphics(this);
 
-    // Rear wheel
     g.fillStyle(0x111122, 1);
     g.fillEllipse(0, 22, 18, 10, 16);
     g.fillStyle(0x3a3a5c, 1);
@@ -272,7 +271,6 @@ export default class GameScene extends Phaser.Scene {
     g.fillStyle(0x888899, 0.7);
     g.fillCircle(0, 22, 3);
 
-    // Front wheel
     g.fillStyle(0x111122, 1);
     g.fillEllipse(0, -22, 16, 9, 16);
     g.fillStyle(0x3a3a5c, 1);
@@ -280,42 +278,33 @@ export default class GameScene extends Phaser.Scene {
     g.fillStyle(0x888899, 0.7);
     g.fillCircle(0, -22, 2.5);
 
-    // Body
     g.fillStyle(0xe74c3c, 1);
     g.fillRoundedRect(-7, -16, 14, 32, 4);
 
-    // Fuel tank
     g.fillStyle(0xc0392b, 1);
     g.fillRoundedRect(-6, -14, 12, 14, 3);
 
-    // Windscreen
     g.fillStyle(0x7ec8e3, 0.80);
     g.fillRoundedRect(-4, -18, 8, 8, 2);
 
-    // Headlight
     g.fillStyle(0xfff5aa, 0.95);
     g.fillRoundedRect(-4, -26, 8, 5, 2);
 
-    // Tail light
     g.fillStyle(0xff3333, 0.9);
     g.fillRoundedRect(-4, 17, 8, 4, 2);
 
-    // Rider helmet
     g.fillStyle(0x2c3e50, 1);
     g.fillCircle(0, -8, 7);
     g.fillStyle(0x3d5166, 1);
     g.fillRoundedRect(-5, -12, 10, 6, 2);
 
-    // Visor
     g.fillStyle(0x7ec8e3, 0.6);
     g.fillRoundedRect(-4, -10, 8, 3, 1);
 
-    // Exhausts
     g.fillStyle(0x888899, 0.8);
     g.fillRect(7,   2, 4, 14);
     g.fillRect(-11, 2, 4, 14);
 
-    // Mirrors
     g.fillStyle(0x555566, 1);
     g.fillRect(-10, -6, 4, 2);
     g.fillRect(6,   -6, 4, 2);
@@ -348,11 +337,6 @@ export default class GameScene extends Phaser.Scene {
   //  TRAFFIC
   // ═══════════════════════════════════════════
 
-  /**
-   * Returns a Set of lane indices that currently have a vehicle
-   * inside the danger window ahead of the player.
-   * Used to prevent spawning a 3-lane block.
-   */
   _countDangerLanes() {
     const dangerTop = this.bike.y - 420;
     const dangerBot = this.bike.y - 80;
@@ -367,32 +351,19 @@ export default class GameScene extends Phaser.Scene {
     return occupied;
   }
 
-  /**
-   * Spawns a single traffic vehicle with its own independent speed.
-   *
-   * CHANGES vs original:
-   * 1. Each NPC gets a `npcSpeed` property — its own absolute world speed.
-   *    Trucks are slow, cars are varied, occasional fast cars appear.
-   * 2. Danger-window guard: if 3+ lanes are already occupied near the player,
-   *    or if the target lane is already occupied in that window, skip the spawn.
-   *    This guarantees a fair escape route is always available.
-   */
   _spawnTraffic() {
     const isOncoming = Math.random() < 0.50;
     const lanePool   = isOncoming ? [0, 1] : [2, 3];
     const lane       = Phaser.Utils.Array.GetRandom(lanePool);
     const isTruck    = Math.random() < 0.28;
 
-    // ── Independent NPC speed ─────────────────────────────────────────────
-    // Each vehicle gets its own world speed in px/s, independent of the player.
-    // Trucks: 60–110  |  Normal cars: 90–200  |  Fast cars (15% chance): 200–320
     let npcSpeed;
     if (isTruck) {
       npcSpeed = Phaser.Math.Between(60, 110);
     } else if (Math.random() < 0.15) {
-      npcSpeed = Phaser.Math.Between(200, 320); // fast car
+      npcSpeed = Phaser.Math.Between(200, 320);
     } else {
-      npcSpeed = Phaser.Math.Between(90, 200);  // normal car
+      npcSpeed = Phaser.Math.Between(90, 200);
     }
 
     const COLORS = [0xe74c3c, 0x2ecc71, 0xf39c12, 0x9b59b6, 0xdddddd,
@@ -400,7 +371,6 @@ export default class GameScene extends Phaser.Scene {
     const color  = Phaser.Utils.Array.GetRandom(COLORS);
     const halfH  = isTruck ? 55 : 45;
 
-    // ── Per-lane minimum spacing guard ────────────────────────────────────
     const MIN_SPACING = isTruck ? 160 : 130;
     for (const tr of this._traffic) {
       if (tr.lane === lane) {
@@ -409,14 +379,10 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
-    // ── Danger-window guard ───────────────────────────────────────────────
-    // Prevent spawning when 3+ lanes are already dangerous, or when the
-    // chosen lane is already occupied near the player — ensures a fair escape.
     const danger = this._countDangerLanes();
-    if (danger.size >= 3)      return; // all lanes nearly blocked — skip
-    if (danger.has(lane))      return; // chosen lane already dangerous — skip
+    if (danger.size >= 3)      return;
+    if (danger.has(lane))      return;
 
-    // ── Spawn ─────────────────────────────────────────────────────────────
     const spawnY = -halfH;
     const gfx    = isTruck ? this._drawTruck(color) : this._drawCar(color);
 
@@ -438,36 +404,18 @@ export default class GameScene extends Phaser.Scene {
       isTruck,
       hw:    isTruck ? TRUCK_HW : CAR_HW,
       hh:    isTruck ? TRUCK_HH : CAR_HH,
-      speed: npcSpeed,   // ← own independent speed, never changes
+      speed: npcSpeed,
     });
   }
 
-  /**
-   * Moves traffic using RELATIVE VELOCITY — not player speed directly.
-   *
-   * CHANGES vs original:
-   * - Oncoming vehicles: closing speed = player.speed + npc.speed
-   *   They rush toward the player at a combined rate. Braking slows the
-   *   approach only from the player's side; the NPC still charges at its
-   *   own speed.
-   * - Same-direction vehicles: relative speed = player.speed - npc.speed
-   *   If player is faster → NPC appears to scroll backward (player overtakes).
-   *   If player brakes below NPC speed → NPC drives away from the player.
-   *   The NPC never slows down just because the player brakes.
-   * - Culling: both directions move downward, so cull when past bottom edge.
-   */
   _updateTraffic(dt) {
     for (const tr of this._traffic) {
       let dy;
 
       if (tr.oncoming) {
-        // Closing speed: player rushing forward + NPC rushing toward player.
-        // Both contributions are always positive, so the NPC always approaches.
         const closingSpeed = this.speed + tr.speed;
         dy = closingSpeed * dt;
       } else {
-        // Relative speed: positive → player overtakes (NPC scrolls down).
-        // Negative → player is slower; NPC moves upward (drives away).
         const relativeSpeed = this.speed - tr.speed;
         dy = relativeSpeed * dt;
       }
@@ -476,10 +424,9 @@ export default class GameScene extends Phaser.Scene {
       tr.shadow.y    += dy;
     }
 
-    // Cull off-screen vehicles (both directions move downward overall)
     this._traffic = this._traffic.filter(tr => {
       const offBottom = tr.container.y >  this.H + 120;
-      const offTop    = tr.container.y < -300;  // same-dir drifted off top if player braked hard
+      const offTop    = tr.container.y < -300;
       if (offBottom || offTop) {
         tr.container.destroy();
         tr.shadow.destroy();
@@ -570,7 +517,6 @@ export default class GameScene extends Phaser.Scene {
   _spawnCoinGroup() {
     const r    = Math.random();
     const lane = Phaser.Utils.Array.GetRandom([2, 3]);
-    const type = this._coinType();
     const baseY = -60;
 
     if (r < 0.28) {
@@ -580,12 +526,11 @@ export default class GameScene extends Phaser.Scene {
       this._addCoin(3, baseY, 'gold');
     } else if (r < 0.70) {
       for (let i = 0; i < 4; i++) this._addCoin(i % 2 === 0 ? 2 : 3, baseY - i * 50, 'gold');
-    } else if (r < 0.88) {
+    } else {
       const seq = [2, 2, 3, 3, 2];
       seq.forEach((l, i) => this._addCoin(l, baseY - i * 46, 'gold'));
-    } else {
-      this._addCoin(lane, baseY, type);
     }
+    // ↑ No more random-type branch — diamonds are IQ rewards only.
   }
 
   _addCoin(lane, y, type) {
@@ -632,10 +577,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _coinType() {
-    const r = Math.random();
-    if (r < 0.80) return 'gold';
-    if (r < 0.95) return 'blue';
-    return 'red';
+    // Gold only on the road. Blue/Red come from IQ boxes.
+    return 'gold';
   }
 
   // ═══════════════════════════════════════════
@@ -647,7 +590,6 @@ export default class GameScene extends Phaser.Scene {
     const by = this.bike.y;
     const dt = 1 / 60;
 
-    // Coins scroll down same as road (player-perspective)
     for (const c of this._coins) {
       if (c.collected) continue;
       c.gfx.y += this.speed * dt;
@@ -661,7 +603,6 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
-    // Traffic collision
     for (const tr of this._traffic) {
       const dx = Math.abs(bx - tr.container.x);
       const dy = Math.abs(by - tr.container.y);
@@ -671,7 +612,6 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
-    // Cull coins
     this._coins = this._coins.filter(c => {
       if (c.collected || c.gfx.y > this.H + 40) {
         c.gfx.destroy();
@@ -759,6 +699,7 @@ export default class GameScene extends Phaser.Scene {
 
   _crashBike() {
     if (!this.alive) return;
+    this._iqManager.destroy();
     this.alive = false;
 
     this.cameras.main.shake(500, 0.022);
