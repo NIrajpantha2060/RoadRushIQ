@@ -338,8 +338,8 @@ export default class GameScene extends Phaser.Scene {
   // ═══════════════════════════════════════════
 
   _countDangerLanes() {
-    const dangerTop = this.bike.y - 420;
-    const dangerBot = this.bike.y - 80;
+    const dangerTop = this.bike.y - 600;  // wider lookahead
+    const dangerBot = this.bike.y + 60;   // include cars slightly past bike too
     const occupied  = new Set();
 
     for (const tr of this._traffic) {
@@ -352,10 +352,28 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _spawnTraffic() {
-    const isOncoming = Math.random() < 0.50;
-    const lanePool   = isOncoming ? [0, 1] : [2, 3];
-    const lane       = Phaser.Utils.Array.GetRandom(lanePool);
-    const isTruck    = Math.random() < 0.28;
+    // ── Intensity-aware lane pressure ─────────────────
+    // Count how many of your lanes (2,3) are currently blocked
+    const danger       = this._countDangerLanes();
+    const yourBlocked  = [2, 3].filter(l => danger.has(l)).length;
+    const theirBlocked = [0, 1].filter(l => danger.has(l)).length;
+
+    let isOncoming;
+    if (yourBlocked >= 2 && theirBlocked === 0) {
+      // Both your lanes blocked — force spawn on opposite side
+      // so player HAS a safe path (never impossible)
+      isOncoming = true;
+    } else if (yourBlocked === 0 && theirBlocked < 2) {
+      // Your side totally clear — increase pressure on your side
+      isOncoming = Math.random() < 0.25;
+    } else {
+      // Mixed — balanced 50/50 with slight pressure toward your side
+      isOncoming = Math.random() < 0.42;
+    }
+
+    const lanePool = isOncoming ? [0, 1] : [2, 3];
+    const lane     = Phaser.Utils.Array.GetRandom(lanePool);
+    const isTruck  = Math.random() < 0.28;
 
     let npcSpeed;
     if (isTruck) {
@@ -379,9 +397,35 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
-    const danger = this._countDangerLanes();
-    if (danger.size >= 3)      return;
-    if (danger.has(lane))      return;
+    const danger2 = this._countDangerLanes();
+    const yourBlocked2  = [2, 3].filter(l => danger2.has(l)).length;
+    const theirBlocked2 = [0, 1].filter(l => danger2.has(l)).length;
+
+    // Never allow all 3 other lanes blocked — always keep at least 1 escape
+    if (danger2.size >= 3) return;
+    if (danger2.has(lane)) return;
+
+    // If player is in a corner lane (0 or 3), the only escape is the adjacent lane.
+    // Make sure that adjacent lane is never blocked when the other 2 are already blocked.
+    const playerLane    = this.currentLane;
+    const isCorner      = playerLane === 0 || playerLane === 3;
+    const adjacentLane  = playerLane === 0 ? 1
+                        : playerLane === 3 ? 2
+                        : null;
+
+    if (isCorner && adjacentLane !== null) {
+      // Count lanes blocked EXCLUDING the adjacent escape lane
+      const blockedExcludingEscape = [...danger2].filter(l => l !== adjacentLane).length;
+      // If 2 other lanes already blocked, don't block the escape lane
+      if (blockedExcludingEscape >= 2 && lane === adjacentLane) return;
+    }
+
+    // Also protect middle lanes — if both sides of a middle lane are blocked, keep it free
+    if ((playerLane === 1 || playerLane === 2)) {
+      const otherThree = [0, 1, 2, 3].filter(l => l !== playerLane);
+      const blockedOthers = otherThree.filter(l => danger2.has(l)).length;
+      if (blockedOthers >= 2 && danger2.size >= 2) return;
+    }
 
     const spawnY = -halfH;
     const gfx    = isTruck ? this._drawTruck(color) : this._drawCar(color);
@@ -411,18 +455,44 @@ export default class GameScene extends Phaser.Scene {
   _updateTraffic(dt) {
     for (const tr of this._traffic) {
       let dy;
-
       if (tr.oncoming) {
-        const closingSpeed = this.speed + tr.speed;
-        dy = closingSpeed * dt;
+        dy = (this.speed + tr.speed) * dt;
       } else {
-        const relativeSpeed = this.speed - tr.speed;
-        dy = relativeSpeed * dt;
+        dy = (this.speed - tr.speed) * dt;
       }
-
       tr.container.y += dy;
       tr.shadow.y    += dy;
     }
+
+    // ── NPC same-lane separation ──────────────────
+    const sorted = [...this._traffic].sort((a, b) => a.container.y - b.container.y);
+
+    // Run multiple passes to resolve chains
+    for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const front = sorted[i];
+        const back  = sorted[i + 1];
+
+        if (front.lane !== back.lane) continue;
+        // Only separate cars moving in the same direction
+        if (front.oncoming !== back.oncoming) continue;
+
+        const minGap  = front.hh + back.hh + 8;
+        const overlap = minGap - (back.container.y - front.container.y);
+
+        if (overlap > 0) {
+          // Push back forward
+          back.container.y += overlap;
+          back.shadow.y    += overlap;
+          
+          // Push front backward slightly (distributes the separation)
+          const halfOverlap = overlap * 0.1; // 10% pushback
+          front.container.y -= halfOverlap;
+          front.shadow.y    -= halfOverlap;
+        }
+      }
+    }
+    // ─────────────────────────────────────────────
 
     this._traffic = this._traffic.filter(tr => {
       const offBottom = tr.container.y >  this.H + 120;
@@ -515,22 +585,35 @@ export default class GameScene extends Phaser.Scene {
   // ═══════════════════════════════════════════
 
   _spawnCoinGroup() {
-    const r    = Math.random();
-    const lane = Phaser.Utils.Array.GetRandom([2, 3]);
+    const r     = Math.random();
     const baseY = -60;
 
+    // 70% your side, 30% opposite side
+    const isOppositeSide = Math.random() < 0.30;
+    const primaryLanes   = isOppositeSide ? [0, 1] : [2, 3];
+    const lane           = Phaser.Utils.Array.GetRandom(primaryLanes);
+
     if (r < 0.28) {
+      // Straight line in one lane
       for (let i = 0; i < 5; i++) this._addCoin(lane, baseY - i * 44, 'gold');
     } else if (r < 0.50) {
-      this._addCoin(2, baseY, 'gold');
-      this._addCoin(3, baseY, 'gold');
+      // Two side-by-side in same side
+      this._addCoin(primaryLanes[0], baseY,        'gold');
+      this._addCoin(primaryLanes[1], baseY,        'gold');
     } else if (r < 0.70) {
-      for (let i = 0; i < 4; i++) this._addCoin(i % 2 === 0 ? 2 : 3, baseY - i * 50, 'gold');
-    } else {
-      const seq = [2, 2, 3, 3, 2];
+      // Zigzag within same side
+      for (let i = 0; i < 4; i++)
+        this._addCoin(i % 2 === 0 ? primaryLanes[0] : primaryLanes[1], baseY - i * 50, 'gold');
+    } else if (r < 0.85) {
+      // Snake within same side
+      const seq = [primaryLanes[0], primaryLanes[0], primaryLanes[1], primaryLanes[1], primaryLanes[0]];
       seq.forEach((l, i) => this._addCoin(l, baseY - i * 46, 'gold'));
+    } else {
+      // Cross-road trail — tempts player across the divider
+      const oppLanes = isOppositeSide ? [2, 3] : [0, 1];
+      const crossSeq = [primaryLanes[0], primaryLanes[1], oppLanes[0], oppLanes[1], oppLanes[0]];
+      crossSeq.forEach((l, i) => this._addCoin(l, baseY - i * 52, 'gold'));
     }
-    // ↑ No more random-type branch — diamonds are IQ rewards only.
   }
 
   _addCoin(lane, y, type) {

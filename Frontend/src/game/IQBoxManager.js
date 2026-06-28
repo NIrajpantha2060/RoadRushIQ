@@ -56,7 +56,13 @@ export default class IQBoxManager {
 
   _getSpawnLane() {
     const total = this.scene.laneCentres.length;
-    if (total === 4) return Phaser.Math.Between(2, 3);
+    if (total === 4) {
+      // 60% your side (2,3), 40% opposite side (0,1) — reachable but needs effort
+      const pool = Math.random() < 0.60
+        ? [2, 3]
+        : [0, 1];
+      return Phaser.Utils.Array.GetRandom(pool);
+    }
     return Phaser.Math.Between(0, total - 1);
   }
 
