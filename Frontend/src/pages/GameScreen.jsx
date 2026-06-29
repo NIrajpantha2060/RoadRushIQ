@@ -203,8 +203,8 @@ function GameScreen({ onExit, onRestart, mode = 'two-way', selectedBike = 'skoot
           game.events.on('iq-collected', handleIQCollected);
           game.events.on('show-ad',      handleShowAd);
 
-          game.registry.set('onExit',          () => onExitRef.current?.());
-          game.registry.set('onRestart',       () => onRestartRef.current?.());
+          game.registry.set('onExit',          (runSummary) => onExitRef.current?.(runSummary));
+          game.registry.set('onRestart',       (runSummary) => onRestartRef.current?.(runSummary));
           game.registry.set('trafficMode',     mode);
           game.registry.set('blueDiamonds',    0);
           game.registry.set('redDiamonds',     0);

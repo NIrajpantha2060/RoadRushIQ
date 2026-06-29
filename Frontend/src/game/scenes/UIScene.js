@@ -761,18 +761,31 @@ export default class UIScene extends Phaser.Scene {
     this._overlayActive = false;
   }
 
+  _buildRunSummary() {
+    return {
+      score: this.registry.get('score') ?? 0,
+      coins: this.registry.get('coins') ?? 0,
+      blueDiamonds: this.registry.get('blueDiamonds') ?? 0,
+      redDiamonds: this.registry.get('redDiamonds') ?? 0,
+      mode: this.registry.get('trafficMode') ?? 'two-way',
+      bikeUsed: this.registry.get('selectedBike') ?? 'skooter',
+    };
+  }
+
   _restart() {
     if (!this._overlayActive) return;
+    const runSummary = this._buildRunSummary();
     this._destroyOverlay();
     this._gameOverShown = false;
     this.registry.set('gameOver', false);
-    this.registry.get('onRestart')?.();
+    this.registry.get('onRestart')?.(runSummary);
   }
 
   _goHome() {
     if (!this._overlayActive) return;
+    const runSummary = this._buildRunSummary();
     this.registry.set('gameOver', false);
     this._destroyOverlay();
-    this.registry.get('onExit')?.();
+    this.registry.get('onExit')?.(runSummary);
   }
 }

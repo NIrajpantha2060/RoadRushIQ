@@ -1,0 +1,217 @@
+/* src/css/LoginScreen.css */
+
+.ls-root {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100svh;
+  background: #07090f;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.ls-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+.ls-glow--a {
+  width: 420px; height: 420px;
+  background: radial-gradient(circle, rgba(247,147,30,0.18) 0%, transparent 70%);
+  top: -100px; left: -80px;
+}
+.ls-glow--b {
+  width: 360px; height: 360px;
+  background: radial-gradient(circle, rgba(0,195,255,0.14) 0%, transparent 70%);
+  bottom: -80px; right: -60px;
+}
+
+/* road dashes */
+.ls-road {
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 6px; height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  overflow: hidden;
+  opacity: 0.1;
+  pointer-events: none;
+}
+.ls-road__dash {
+  width: 4px; height: 48px;
+  background: #ffffff;
+  border-radius: 2px;
+  flex-shrink: 0;
+  animation: ls-road-scroll 1.4s linear infinite;
+}
+.ls-road__dash:nth-child(odd) { animation-delay: -0.7s; }
+
+@keyframes ls-road-scroll {
+  0%   { transform: translateY(-60px); opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+/* card */
+.ls-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 24px;
+  padding: 40px 32px 32px;
+  width: min(360px, 92vw);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+
+/* logo */
+.ls-logo {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  letter-spacing: -0.02em;
+}
+.ls-logo__road {
+  font-size: 34px; font-weight: 900; color: #ffffff; text-transform: uppercase;
+}
+.ls-logo__rush {
+  font-size: 34px; font-weight: 900; color: #f7931e; text-transform: uppercase;
+}
+.ls-logo__iq {
+  font-size: 18px; font-weight: 700; color: #00c3ff;
+  background: rgba(0,195,255,0.12);
+  border: 1px solid rgba(0,195,255,0.3);
+  border-radius: 6px;
+  padding: 2px 7px;
+  margin-left: 2px;
+  align-self: center;
+}
+
+.ls-tagline {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  text-align: center;
+  margin: 0;
+  max-width: 220px;
+  line-height: 1.5;
+}
+
+/* tabs */
+.ls-tabs {
+  display: flex;
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+.ls-tab {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255,255,255,0.45);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.ls-tab--active {
+  background: rgba(255,255,255,0.1);
+  color: #ffffff;
+}
+
+/* form */
+.ls-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+.ls-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ls-field__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ls-field__input {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  box-sizing: border-box;
+}
+.ls-field__input::placeholder { color: rgba(255,255,255,0.25); }
+.ls-field__input:focus {
+  border-color: #f7931e;
+  background: rgba(247,147,30,0.06);
+}
+
+/* error */
+.ls-error {
+  font-size: 12px;
+  color: #ff6b6b;
+  margin: 0;
+  text-align: center;
+  background: rgba(255,107,107,0.08);
+  border: 1px solid rgba(255,107,107,0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+/* submit button */
+.ls-submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: #f7931e;
+  border: none;
+  border-radius: 12px;
+  color: #07090f;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+  box-shadow: 0 4px 20px rgba(247,147,30,0.35);
+  margin-top: 2px;
+}
+.ls-submit-btn:hover:not(:disabled) {
+  background: #ff9f2e;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(247,147,30,0.45);
+}
+.ls-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+.ls-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-road__dash { animation: none; }
+}
