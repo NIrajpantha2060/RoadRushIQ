@@ -1,8 +1,8 @@
-
 import Phaser from 'phaser';
 import IQBoxManager from '../IQBoxManager';
-import { getBikeConfig } from '../bikes/BikeConfig';      // ← NEW
-import PowerUpManager from '../powers/PowerUpManager';    // ← NEW
+import { getBikeConfig } from '../bikes/BikeConfig';
+import PowerUpManager from '../powers/PowerUpManager';
+import SoundManager from '../SoundManager';  // ← NEW
 
 // ── Road layout ────────────────────────────────
 const LANES     = 3;
@@ -100,11 +100,11 @@ export default class OneWayScene extends Phaser.Scene {
       s:     Phaser.Input.Keyboard.KeyCodes.S,
       a:     Phaser.Input.Keyboard.KeyCodes.A,
       d:     Phaser.Input.Keyboard.KeyCodes.D,
-      space: Phaser.Input.Keyboard.KeyCodes.SPACE,   // ← NEW
+      space: Phaser.Input.Keyboard.KeyCodes.SPACE,
     });
     this._prevLeft  = false;
     this._prevRight = false;
-    this._prevSpace = false;                          // ← NEW
+    this._prevSpace = false;
 
     // Launch HUD
     if (!this.scene.isActive('UIScene')) {
@@ -122,6 +122,10 @@ export default class OneWayScene extends Phaser.Scene {
     const bikeConfig = getBikeConfig(bikeId);
     this._powerUp    = new PowerUpManager(this, bikeConfig.power);
     // ──────────────────────────────────────────────
+
+    // ── Sound system ───────────────────────────────────────
+    this._sfx = new SoundManager(this);
+    // ──────────────────────────────────────────────────────
 
     // Score ticker
     this.time.addEvent({
@@ -673,6 +677,7 @@ export default class OneWayScene extends Phaser.Scene {
   _collectCoin(c) {
     this.coins += c.points;
     this.registry.set('coins', this.coins);
+    this._sfx?.playCoin();  // ← NEW
 
     const color = c.type === 'gold' ? '#f7c948' : c.type === 'blue' ? '#00c3ff' : '#ff4d6d';
     const label = c.type === 'gold' ? '+1' : c.type === 'blue' ? '+5' : '+20';
@@ -712,9 +717,15 @@ export default class OneWayScene extends Phaser.Scene {
     const left  = this.keys.left.isDown  || this.keys.a.isDown;
     const right = this.keys.right.isDown || this.keys.d.isDown;
 
+    const wasAccel = up;
+    const wasDecel = down || (!up && this.speed > BASE_SPEED * 0.4);
+
     if (up)        this.speed = Math.min(this.speed + ACCEL * dt, MAX_SPEED);
     else if (down) this.speed = Math.max(this.speed - BRAKE * dt, 0);
     else           this.speed = Math.max(this.speed - PASSIVE_DECEL * dt, BASE_SPEED * 0.4);
+
+    // Update sound engine every frame
+    this._sfx?.update(this.speed, MAX_SPEED, wasAccel, down, 16);
 
     const leftPressed  = left  && !this._prevLeft;
     const rightPressed = right && !this._prevRight;
@@ -757,8 +768,10 @@ export default class OneWayScene extends Phaser.Scene {
   _crashBike() {
     if (!this.alive) return;
     this._iqManager.destroy();
-    this._powerUp.destroy();                          // ← NEW
+    this._powerUp.destroy();
     this.alive = false;
+    this._sfx?.playCrash();
+    this.time.delayedCall(700, () => this._sfx?.destroy());
 
     this.cameras.main.shake(500, 0.022);
     this.cameras.main.flash(350, 255, 60, 60);

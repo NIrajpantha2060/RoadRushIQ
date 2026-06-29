@@ -1,23 +1,4 @@
-/**
- * BikeConfig.js
- *
- * Single source of truth for every bike in RoadRush IQ.
- * To add a new bike: add one entry to BIKES. Nothing else changes.
- *
- * Each bike entry:
- *   id          – unique string key, used in registry & GameScreen
- *   name        – display name
- *   baseSpeed   – reserved for future per-bike tuning (not used yet)
- *   unlockCost  – reserved for shop system
- *   power       – null (no power) OR a power config object:
- *     type        – matches a key in PowerRegistry (see PowerUpManager)
- *     duration    – active time in milliseconds
- *     cooldown    – cooldown time in milliseconds
- *     activateKey – Phaser.Input.Keyboard.KeyCodes key
- *     label       – short display name for HUD
- *     color       – hex number for HUD / visual effects
- *     options     – any extra data the specific power needs
- */
+
 
 export const BIKES = {
   skooter: {
