@@ -83,6 +83,13 @@
   color: rgba(255,255,255,0.90); letter-spacing: 0.02em;
 }
 
+/* Group the two right buttons together */
+.hs-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .hs-notif-btn {
   position: relative; width: 42px; height: 42px;
   border-radius: 50%;
@@ -97,6 +104,50 @@
   position: absolute; top: 9px; right: 10px;
   width: 7px; height: 7px; border-radius: 50%;
   background: #f7931e; border: 1.5px solid #07090f;
+}
+
+/* Daily Rewards gift button */
+.hs-daily-btn {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(247, 147, 30, 0.12);
+  border: 1.5px solid rgba(247, 147, 30, 0.40);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, transform 0.15s;
+}
+.hs-daily-btn:hover {
+  background: rgba(247, 147, 30, 0.22);
+  border-color: rgba(247, 147, 30, 0.65);
+  transform: scale(1.06);
+}
+.hs-daily-btn:active {
+  transform: scale(0.95);
+}
+.hs-daily-btn__icon {
+  font-size: 20px;
+  color: #f7931e;
+}
+/* Orange dot indicator — always shown until today is claimed */
+.hs-daily-btn__dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f7931e;
+  border: 1.5px solid #07090f;
+  animation: hs-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes hs-dot-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1);    }
+  50%       { opacity: 0.6; transform: scale(0.85); }
 }
 
 /* ── HOME STAGE ── */
