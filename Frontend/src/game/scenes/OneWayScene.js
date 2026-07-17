@@ -768,10 +768,12 @@ export default class OneWayScene extends Phaser.Scene {
   _crashBike() {
     if (!this.alive) return;
     this._iqManager.destroy();
-    this._powerUp.destroy();
     this.alive = false;
     this._sfx?.playCrash();
-    this.time.delayedCall(700, () => this._sfx?.destroy());
+    this._sfx?.pause();          // stop engine loop, but don't tear the manager down
+    // NOTE: _powerUp and _sfx are no longer destroyed here.
+    // UIScene decides what happens next (revive vs. real game over)
+    // and calls the right cleanup/reset via gameScene._sfx / gameScene._powerUp.
 
     this.cameras.main.shake(500, 0.022);
     this.cameras.main.flash(350, 255, 60, 60);
