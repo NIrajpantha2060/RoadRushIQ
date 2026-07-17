@@ -2,6 +2,7 @@
 const express = require('express');
 const auth    = require('../middleware/auth');
 const pool    = require('../db');
+const progressionController = require('../controllers/progressionController');
 
 const router = express.Router();
 
@@ -10,86 +11,18 @@ router.use(auth);
 
 // ── 1. Get full player profile ────────────────────────────
 // GET /api/stats/profile
-router.get('/profile', async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT
-         u.display_name, u.avatar_url, u.email,
-         ps.coins, ps.blue_diamonds, ps.red_diamonds,
-         ps.best_score, ps.total_runs, ps.total_coins_ever,
-         ps.selected_bike, ps.day_streak,
-         ps.last_claim_date, ps.claimed_days
-       FROM users u
-       JOIN player_stats ps ON ps.user_id = u.id
-       WHERE u.id = $1`,
-      [req.user.id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Profile not found' });
-    }
-
-    res.json({ profile: result.rows[0] });
-  } catch (err) {
-    console.error('GET /profile error:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.get('/profile', progressionController.getProfile);
 
 // ── 2. Save a completed run ───────────────────────────────
 // Called when game over screen appears
 // POST /api/stats/save-run
 // Body: { score, coins, blueDiamonds, redDiamonds, mode, bikeUsed }
-router.post('/save-run', async (req, res) => {
-  const {
-    score        = 0,
-    coins        = 0,
-    blueDiamonds = 0,
-    redDiamonds  = 0,
-    mode         = 'two-way',
-    bikeUsed     = 'skooter',
-  } = req.body;
+router.post('/save-run', progressionController.saveRun);
 
-  try {
-    // Legacy users may exist without player_stats; create an empty row once.
-    await pool.query(
-      `INSERT INTO player_stats (user_id)
-       VALUES ($1)
-       ON CONFLICT (user_id) DO NOTHING`,
-      [req.user.id]
-    );
-
-    // Save run to history
-    await pool.query(
-      `INSERT INTO run_history
-         (user_id, score, coins, blue_diamonds, red_diamonds, mode, bike_used)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [req.user.id, score, coins, blueDiamonds, redDiamonds, mode, bikeUsed]
-    );
-
-    // Update player_stats — add resources, update best score
-    const updated = await pool.query(
-      `UPDATE player_stats SET
-         coins            = coins + $1,
-         blue_diamonds    = blue_diamonds + $2,
-         red_diamonds     = red_diamonds + $3,
-         best_score       = GREATEST(best_score, $4),
-         total_runs       = total_runs + 1,
-         total_coins_ever = total_coins_ever + $1
-       WHERE user_id = $5
-       RETURNING coins, blue_diamonds, red_diamonds, best_score, total_runs`,
-      [coins, blueDiamonds, redDiamonds, score, req.user.id]
-    );
-
-    res.json({
-      message: 'Run saved',
-      stats:   updated.rows[0],
-    });
-  } catch (err) {
-    console.error('POST /save-run error:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+// ── 3b. Unlock an item ────────────────────────────────────
+// POST /api/stats/unlock
+// Body: { unlockId }
+router.post('/unlock', progressionController.unlockItem);
 
 // ── 3. Claim daily reward ─────────────────────────────────
 // POST /api/stats/daily-claim
@@ -197,25 +130,7 @@ router.post('/daily-claim', async (req, res) => {
 // ── 4. Update selected bike ───────────────────────────────
 // POST /api/stats/select-bike
 // Body: { bikeId }
-router.post('/select-bike', async (req, res) => {
-  const { bikeId } = req.body;
-  const VALID_BIKES = ['skooter', 'aveengeer', 'krossfire'];
-
-  if (!VALID_BIKES.includes(bikeId)) {
-    return res.status(400).json({ error: 'Invalid bike ID' });
-  }
-
-  try {
-    await pool.query(
-      'UPDATE player_stats SET selected_bike = $1 WHERE user_id = $2',
-      [bikeId, req.user.id]
-    );
-    res.json({ message: 'Bike updated', selectedBike: bikeId });
-  } catch (err) {
-    console.error('POST /select-bike error:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.post('/select-bike', progressionController.selectBike);
 
 // ── 5. Leaderboard (top 20 scores) ───────────────────────
 // GET /api/stats/leaderboard
@@ -224,7 +139,10 @@ router.get('/leaderboard', async (req, res) => {
     const result = await pool.query(
       `SELECT
          u.display_name, u.avatar_url,
-         ps.best_score, ps.total_runs, ps.selected_bike
+         ps.best_score, ps.total_runs, ps.selected_bike,
+         DENSE_RANK() OVER (
+           ORDER BY ps.best_score DESC, ps.total_xp DESC, ps.updated_at ASC, ps.user_id ASC
+         ) AS rank
        FROM player_stats ps
        JOIN users u ON u.id = ps.user_id
        ORDER BY ps.best_score DESC

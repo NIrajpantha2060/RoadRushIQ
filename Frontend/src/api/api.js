@@ -41,6 +41,11 @@ export async function saveRun({ score, coins, blueDiamonds, redDiamonds, mode, b
   return res.data;
 }
 
+export async function unlockItem(unlockId) {
+  const res = await client.post('/api/stats/unlock', { unlockId });
+  return res.data;
+}
+
 export async function claimDailyReward({ day, type, amount }) {
   const res = await client.post('/api/stats/daily-claim', { day, type, amount });
   return res.data;

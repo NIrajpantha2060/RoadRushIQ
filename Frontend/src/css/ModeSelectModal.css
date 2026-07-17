@@ -82,6 +82,10 @@
   width: 100%;
 }
 
+.msc-card--featured {
+  border-color: rgba(247, 147, 30, 0.18);
+}
+
 .msc-card:hover {
   background: #1c2640;
   border-color: rgba(247, 147, 30, 0.4);
@@ -159,6 +163,49 @@
   font-family: system-ui, sans-serif;
   color: rgba(255, 255, 255, 0.45);
   line-height: 1.45;
+}
+
+.msc-card__requirements {
+  margin-top: 6px;
+  font-size: 11px;
+  font-family: system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.msc-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.msc-card__primary-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 9px 14px;
+  background: linear-gradient(135deg, #f7931e 0%, #e6700d 100%);
+  color: #fff;
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(247, 147, 30, 0.18);
+}
+
+.msc-card__primary-btn--unlock {
+  background: linear-gradient(135deg, #f7c948 0%, #f7931e 100%);
+  color: #091018;
+}
+
+.msc-card__locked-state {
+  font-size: 11px;
+  font-family: system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
 }
 
 /* Arrow */

@@ -1,11 +1,17 @@
 
 
+import { UNLOCKS } from '../progressionConfig';
+
+function getBikeUnlockCost(bikeId) {
+  return UNLOCKS.bikes.find((bike) => bike.id === bikeId)?.requiredCoins ?? 0;
+}
+
 export const BIKES = {
   skooter: {
     id:         'skooter',
     name:       'Skooter',
     baseSpeed:  null,   // uses scene default
-    unlockCost: 0,
+    unlockCost: getBikeUnlockCost('skooter'),
     power:      null,   // no power-up
   },
 
@@ -13,7 +19,7 @@ export const BIKES = {
     id:         'aveengeer',
     name:       'Aveengeer',
     baseSpeed:  null,
-    unlockCost: 5000,
+    unlockCost: getBikeUnlockCost('aveengeer'),
     power: {
       type:       'shield',
       duration:   6000,   // 6 seconds active
@@ -30,7 +36,7 @@ export const BIKES = {
     id:         'krossfire',
     name:       'Kross Fire',
     baseSpeed:  null,
-    unlockCost: 8000,
+    unlockCost: getBikeUnlockCost('krossfire'),
     power: {
       type:       'magnet',
       duration:   8000,   // 8 seconds active

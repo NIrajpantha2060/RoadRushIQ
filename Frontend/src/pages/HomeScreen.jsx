@@ -23,6 +23,7 @@ import {
 } from 'react-icons/fa';
 import ModeSelectModal from './ModeSelectModal';
 import DailyRewards    from './DailyRewards';
+import { UNLOCKS, getUnlockedMap } from '../game/progressionConfig';
 import '../css/HomeScreen.css';
 
 const NAV_ITEMS = [
@@ -33,48 +34,13 @@ const NAV_ITEMS = [
   { id: 'settings', Icon: MdSettings,     label: 'Settings' },
 ];
 
-const BIKE_CATALOGUE = [
-  {
-    id:          'skooter',
-    name:        'Skooter',
-    tagline:     'The starter ride',
-    unlockCost:  0,
-    locked:      false,
-    power:       null,
-    accentColor: '#f7931e',
-    svgFill:     '#f7931e',
-  },
-  {
-    id:          'aveengeer',
-    name:        'Aveengeer',
-    tagline:     'Built for the impossible',
-    unlockCost:  5000,
-    locked:      false,
-    power: {
-      name:  'Shield',
-      icon:  FaShieldAlt,
-      color: '#00c3ff',
-      desc:  '6s invincibility + speed boost · 25s cooldown',
-    },
-    accentColor: '#00c3ff',
-    svgFill:     '#00c3ff',
-  },
-  {
-    id:          'krossfire',
-    name:        'Kross Fire',
-    tagline:     'Coins come to you',
-    unlockCost:  8000,
-    locked:      false,
-    power: {
-      name:  'Magnet',
-      icon:  FaMagnet,
-      color: '#f7c948',
-      desc:  'Pulls nearby coins for 8s · 35s cooldown',
-    },
-    accentColor: '#f7c948',
-    svgFill:     '#f7c948',
-  },
-];
+const BIKE_CATALOGUE = UNLOCKS.bikes;
+
+function getBikePowerIcon(powerName) {
+  if (powerName === 'Shield') return FaShieldAlt;
+  if (powerName === 'Magnet') return FaMagnet;
+  return null;
+}
 
 function BikeSVG({ fill = '#f7931e', size = 56 }) {
   return (
@@ -118,7 +84,10 @@ function ActiveBikeCard({ bike }) {
           className="hs-bike-power-badge"
           style={{ '--badge-color': bike.power.color }}
         >
-          <bike.power.icon style={{ fontSize: 11 }} />
+              {(() => {
+                const Icon = getBikePowerIcon(bike.power.name);
+                return Icon ? <Icon style={{ fontSize: 11 }} /> : null;
+              })()}
           <span>{bike.power.name}</span>
         </div>
       )}
@@ -127,7 +96,9 @@ function ActiveBikeCard({ bike }) {
   );
 }
 
-function GaragePanel({ selectedBike, onBikeSelect }) {
+function GaragePanel({ selectedBike, onBikeSelect, onUnlockItem, progression, user }) {
+  const unlockedMap = getUnlockedMap(user?.unlocks ?? []);
+
   return (
     <div className="hs-garage">
       <p className="hs-garage__eyebrow">Your collection</p>
@@ -135,16 +106,19 @@ function GaragePanel({ selectedBike, onBikeSelect }) {
       <div className="hs-garage__list">
         {BIKE_CATALOGUE.map(bike => {
           const isSelected = selectedBike === bike.id;
+          const unlockState = unlockedMap.get(bike.id);
+          const isUnlocked = unlockState?.isUnlocked ?? bike.defaultUnlocked;
+          const canUnlock = progression && progression.level >= bike.requiredLevel && progression.coins >= bike.requiredCoins;
           return (
             <div
               key={bike.id}
-              className={['hs-bike-card', isSelected ? 'hs-bike-card--selected' : ''].join(' ')}
+              className={['hs-bike-card', isSelected ? 'hs-bike-card--selected' : '', !isUnlocked ? 'hs-bike-card--locked' : ''].join(' ')}
               style={{ '--bike-accent': bike.accentColor }}
-              onClick={() => onBikeSelect(bike.id)}
+              onClick={() => isUnlocked && onBikeSelect(bike.id)}
               role="button"
               tabIndex={0}
-              aria-label={`${bike.name}${isSelected ? ' – equipped' : ' – equip'}`}
-              onKeyDown={e => e.key === 'Enter' && onBikeSelect(bike.id)}
+              aria-label={`${bike.name}${isSelected ? ' – equipped' : isUnlocked ? ' – equip' : ' – locked'}`}
+              onKeyDown={e => e.key === 'Enter' && isUnlocked && onBikeSelect(bike.id)}
             >
               <div className="hs-bike-card__icon">
                 <BikeSVG fill={bike.accentColor} size={38} />
@@ -154,7 +128,10 @@ function GaragePanel({ selectedBike, onBikeSelect }) {
                   <span className="hs-bike-card__name">{bike.name}</span>
                   {bike.power ? (
                     <span className="hs-bike-card__power-chip" style={{ '--chip-color': bike.power.color }}>
-                      <bike.power.icon style={{ fontSize: 9 }} />
+                      {(() => {
+                        const Icon = getBikePowerIcon(bike.power.name);
+                        return Icon ? <Icon style={{ fontSize: 9 }} /> : null;
+                      })()}
                       {bike.power.name}
                     </span>
                   ) : (
@@ -165,6 +142,11 @@ function GaragePanel({ selectedBike, onBikeSelect }) {
                 {bike.power && (
                   <span className="hs-bike-card__power-desc">{bike.power.desc}</span>
                 )}
+                {!isUnlocked && (
+                  <span className="hs-bike-card__requirements">
+                    Requires level {bike.requiredLevel} and {bike.requiredCoins.toLocaleString()} coins
+                  </span>
+                )}
               </div>
               <div className="hs-bike-card__status">
                 {isSelected ? (
@@ -172,6 +154,24 @@ function GaragePanel({ selectedBike, onBikeSelect }) {
                     <FaCheckCircle className="hs-bike-card__check" />
                     <span>Equipped</span>
                   </div>
+                ) : !isUnlocked ? (
+                  canUnlock ? (
+                    <button
+                      className="hs-bike-card__unlock-btn"
+                      onClick={async e => {
+                        e.stopPropagation();
+                        await onUnlockItem?.(bike.id);
+                        await onBikeSelect?.(bike.id);
+                      }}
+                      aria-label={`Unlock ${bike.name}`}
+                    >
+                      Unlock
+                    </button>
+                  ) : (
+                    <div className="hs-bike-card__locked-state">
+                      <span>Locked</span>
+                    </div>
+                  )
                 ) : (
                   <button
                     className="hs-bike-card__equip-btn"
@@ -190,23 +190,66 @@ function GaragePanel({ selectedBike, onBikeSelect }) {
   );
 }
 
+function ProgressionStrip({ progression = {} }) {
+  const level = progression.level ?? 1;
+  const currentXp = progression.currentXp ?? 0;
+  const xpForNextLevel = progression.xpForNextLevel ?? 0;
+  const progressPercent = progression.progressPercent ?? 0;
+
+  return (
+    <div className="hs-progress-strip" aria-label="Player progression">
+      <div className="hs-progress-strip__meta">
+        <span className="hs-progress-strip__level">Level {level}</span>
+        <span className="hs-progress-strip__xp">{currentXp.toLocaleString()} / {xpForNextLevel.toLocaleString()} XP</span>
+      </div>
+      <div className="hs-progress-strip__bar" aria-hidden="true">
+        <div className="hs-progress-strip__fill" style={{ width: `${progressPercent}%` }} />
+      </div>
+    </div>
+  );
+}
+
 // ── HomeScreen ─────────────────────────────────────────────────────────────
-function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, user, onUserUpdate }) {
+function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, onUnlockItem, user }) {
   const [activeTab,       setActiveTab]       = useState('home');
   const [showModeModal,   setShowModeModal]   = useState(false);
   const [showDailyRewards, setShowDailyRewards] = useState(false);
 
+  const unlockedMap   = getUnlockedMap(user?.unlocks ?? []);
   const currentIndex   = BIKE_CATALOGUE.findIndex(b => b.id === selectedBike);
   const activeBikeData = BIKE_CATALOGUE[currentIndex] ?? BIKE_CATALOGUE[0];
+  const progression    = user?.progression ?? {};
+
+  const isBikeUnlocked = (bikeId) => {
+    const bike = BIKE_CATALOGUE.find((item) => item.id === bikeId);
+    return unlockedMap.get(bikeId)?.isUnlocked ?? bike?.defaultUnlocked ?? false;
+  };
+
+  const findNextUnlockedBike = (direction) => {
+    let index = currentIndex;
+
+    for (let i = 0; i < BIKE_CATALOGUE.length; i += 1) {
+      index = (index + direction + BIKE_CATALOGUE.length) % BIKE_CATALOGUE.length;
+      if (isBikeUnlocked(BIKE_CATALOGUE[index].id)) {
+        return BIKE_CATALOGUE[index].id;
+      }
+    }
+
+    return selectedBike;
+  };
 
   const handlePrevBike = () => {
-    const prev = (currentIndex - 1 + BIKE_CATALOGUE.length) % BIKE_CATALOGUE.length;
-    onBikeSelect(BIKE_CATALOGUE[prev].id);
+    const prevBikeId = findNextUnlockedBike(-1);
+    if (prevBikeId !== selectedBike) {
+      onBikeSelect(prevBikeId);
+    }
   };
 
   const handleNextBike = () => {
-    const next = (currentIndex + 1) % BIKE_CATALOGUE.length;
-    onBikeSelect(BIKE_CATALOGUE[next].id);
+    const nextBikeId = findNextUnlockedBike(1);
+    if (nextBikeId !== selectedBike) {
+      onBikeSelect(nextBikeId);
+    }
   };
 
   const handlePlayClick  = () => setShowModeModal(true);
@@ -225,12 +268,16 @@ function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, user, onUs
 
       {/* ── TOP BAR ── */}
       <header className="hs-topbar">
-        <button className="hs-profile-btn" aria-label="Profile">
-          {user?.avatar_url
-            ? <img src={user.avatar_url} alt={user.display_name} className="hs-profile-btn__avatar" />
-            : <FaUserCircle className="hs-profile-btn__icon" />
-          }
-        </button>
+        <div className="hs-topbar-left">
+          <button className="hs-profile-btn" aria-label="Profile">
+            {user?.avatar_url
+              ? <img src={user.avatar_url} alt={user.display_name} className="hs-profile-btn__avatar" />
+              : <FaUserCircle className="hs-profile-btn__icon" />
+            }
+          </button>
+
+          <ProgressionStrip progression={progression} />
+        </div>
 
         <div className="hs-resources" aria-label="Resources">
           <div className="hs-chip hs-chip--gold">
@@ -267,7 +314,13 @@ function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, user, onUs
 
       {/* ── MAIN AREA ── */}
       {activeTab === 'garage' ? (
-        <GaragePanel selectedBike={selectedBike} onBikeSelect={onBikeSelect} />
+        <GaragePanel
+          selectedBike={selectedBike}
+          onBikeSelect={onBikeSelect}
+          onUnlockItem={onUnlockItem}
+          progression={progression}
+          user={user}
+        />
       ) : (
         <main className="hs-stage">
           <span className="hs-stage__eyebrow">Current Vehicle</span>
@@ -288,7 +341,8 @@ function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, user, onUs
                 key={b.id}
                 className={`hs-bike-dot${i === currentIndex ? ' hs-bike-dot--active' : ''}`}
                 style={{ '--dot-color': b.accentColor }}
-                onClick={() => onBikeSelect(b.id)}
+                onClick={() => isBikeUnlocked(b.id) && onBikeSelect(b.id)}
+                disabled={!isBikeUnlocked(b.id)}
                 aria-label={`Select ${b.name}`}
               />
             ))}
@@ -314,15 +368,15 @@ function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, user, onUs
           <div className="hs-stat-row" aria-label="Stats">
             <div className="hs-stat-pill">
               <span className="hs-stat-pill__dot hs-stat-pill__dot--gold" aria-hidden="true" />
-              <span className="hs-stat-pill__label">Best</span>
+              <span className="hs-stat-pill__label">Highest Score</span>
               <span className="hs-stat-pill__val">
-                {user?.best_score?.toLocaleString() ?? '—'}
+                {user?.progression?.highestScore?.toLocaleString() ?? user?.highest_score?.toLocaleString() ?? '—'}
               </span>
             </div>
             <div className="hs-stat-pill">
               <MdLeaderboard className="hs-stat-pill__icon" aria-hidden="true" />
               <span className="hs-stat-pill__label">Rank</span>
-              <span className="hs-stat-pill__val">#142</span>
+              <span className="hs-stat-pill__val">#{user?.progression?.rank ?? '—'}</span>
             </div>
           </div>
 
@@ -355,7 +409,12 @@ function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, user, onUs
 
       {/* ── MODE SELECT MODAL ── */}
       {showModeModal && (
-        <ModeSelectModal onSelect={handleModeSelect} onClose={handleModalClose} />
+        <ModeSelectModal
+          onSelect={handleModeSelect}
+          onClose={handleModalClose}
+          user={user}
+          onUnlockItem={onUnlockItem}
+        />
       )}
 
       {/* ── DAILY REWARDS MODAL ── */}

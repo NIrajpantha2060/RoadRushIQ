@@ -48,6 +48,12 @@
   padding: 14px 18px 10px;
 }
 
+.hs-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .hs-profile-btn {
   width: 44px; height: 44px;
   border-radius: 50%;
@@ -63,23 +69,39 @@
 }
 .hs-profile-btn__icon { font-size: 22px; color: rgba(247, 147, 30, 0.9); }
 
-.hs-resources { display: flex; gap: 6px; align-items: center; }
+.hs-resources {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(8, 12, 20, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+  z-index: 1;
+}
 
 .hs-chip {
   display: flex; align-items: center; gap: 5px;
-  border-radius: 999px; padding: 5px 11px 5px 7px;
+  border-radius: 999px; padding: 4px 9px 4px 7px;
   border: 1px solid rgba(255,255,255,0.09);
   backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
 }
-.hs-chip--gold { background: rgba(247,147,30,0.13); border-color: rgba(247,147,30,0.28); }
-.hs-chip--blue { background: rgba(0,195,255,0.10);  border-color: rgba(0,195,255,0.25); }
-.hs-chip--red  { background: rgba(255,60,90,0.10);  border-color: rgba(255,60,90,0.25); }
-.hs-chip__icon { font-size: 13px; }
+.hs-chip--gold { background: linear-gradient(180deg, rgba(247,147,30,0.18), rgba(247,147,30,0.12)); border-color: rgba(247,147,30,0.30); }
+.hs-chip--blue { background: linear-gradient(180deg, rgba(0,195,255,0.13), rgba(0,195,255,0.09));  border-color: rgba(0,195,255,0.25); }
+.hs-chip--red  { background: linear-gradient(180deg, rgba(255,60,90,0.13), rgba(255,60,90,0.09));  border-color: rgba(255,60,90,0.25); }
+.hs-chip__icon { font-size: 12px; }
 .hs-chip--gold .hs-chip__icon { color: #f7931e; }
 .hs-chip--blue .hs-chip__icon { color: #00c3ff; }
 .hs-chip--red  .hs-chip__icon { color: #ff4d6d; }
 .hs-chip__val {
-  font-size: 12px; font-weight: 700;
+  font-size: 12px; font-weight: 800;
   color: rgba(255,255,255,0.90); letter-spacing: 0.02em;
 }
 
@@ -164,6 +186,47 @@
   font-size: 10px; font-weight: 600;
   letter-spacing: 0.16em; text-transform: uppercase;
   color: rgba(255,255,255,0.30);
+}
+
+.hs-progress-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 112px;
+  padding: 0;
+}
+
+.hs-progress-strip__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.hs-progress-strip__level {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.88);
+}
+
+.hs-progress-strip__xp {
+  font-size: 9px;
+  color: rgba(255,255,255,0.42);
+}
+
+.hs-progress-strip__bar {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+
+.hs-progress-strip__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f7931e 0%, #f7c948 45%, #00c3ff 100%);
 }
 
 /* ── BIKE SWITCHER (home stage) ── */
@@ -388,6 +451,10 @@
 }
 .hs-bike-card--selected::before { opacity: 1; }
 
+.hs-bike-card--locked {
+  opacity: 0.92;
+}
+
 /* Left icon area */
 .hs-bike-card__icon {
   flex-shrink: 0;
@@ -446,6 +513,14 @@
   line-height: 1.4;
 }
 
+.hs-bike-card__requirements {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(255,255,255,0.44);
+}
+
 /* Right status */
 .hs-bike-card__status {
   flex-shrink: 0;
@@ -475,6 +550,34 @@
 .hs-bike-card__equip-btn:hover {
   background: var(--bike-accent, #f7931e);
   color: #07090f;
+}
+
+.hs-bike-card__unlock-btn {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #f7c948 0%, #f7931e 100%);
+  color: #091018;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 10px 18px rgba(247,147,30,0.22);
+}
+
+.hs-bike-card__locked-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.46);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 /* ── BOTTOM NAV ── */

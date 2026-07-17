@@ -73,6 +73,8 @@ CREATE TABLE IF NOT EXISTS player_stats (
   blue_diamonds      INTEGER DEFAULT 0,
   red_diamonds       INTEGER DEFAULT 0,
   best_score         INTEGER DEFAULT 0,
+  level              INTEGER DEFAULT 1,
+  total_xp           INTEGER DEFAULT 0,
   total_runs         INTEGER DEFAULT 0,
   total_coins_ever   INTEGER DEFAULT 0,
   selected_bike      VARCHAR(50) DEFAULT 'skooter',
@@ -81,6 +83,12 @@ CREATE TABLE IF NOT EXISTS player_stats (
   claimed_days       JSONB DEFAULT '[]',
   updated_at         TIMESTAMP DEFAULT NOW()
 );
+
+ALTER TABLE player_stats
+  ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1;
+
+ALTER TABLE player_stats
+  ADD COLUMN IF NOT EXISTS total_xp INTEGER DEFAULT 0;
 
 -- ── Run History ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS run_history (
@@ -95,10 +103,20 @@ CREATE TABLE IF NOT EXISTS run_history (
   played_at     TIMESTAMP DEFAULT NOW()
 );
 
+-- ── Player Unlocks ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS player_unlocks (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  unlock_id    VARCHAR(60) NOT NULL,
+  unlocked_at  TIMESTAMP DEFAULT NOW(),
+  UNIQUE (user_id, unlock_id)
+);
+
 -- ── Indexes ───────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_player_stats_user_id ON player_stats(user_id);
 CREATE INDEX IF NOT EXISTS idx_run_history_user_id  ON run_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_run_history_score    ON run_history(score DESC);
+CREATE INDEX IF NOT EXISTS idx_player_unlocks_user_id ON player_unlocks(user_id);
 
 -- ── updated_at trigger ────────────────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at()

@@ -57,6 +57,26 @@ async function initializeDatabase() {
         ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
     `);
+
+    await client.query(`
+      ALTER TABLE IF EXISTS player_stats
+        ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1,
+        ADD COLUMN IF NOT EXISTS total_xp INTEGER DEFAULT 0;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS player_unlocks (
+        id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        unlock_id    VARCHAR(60) NOT NULL,
+        unlocked_at  TIMESTAMP DEFAULT NOW(),
+        UNIQUE (user_id, unlock_id)
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_player_unlocks_user_id ON player_unlocks(user_id);
+    `);
   } finally {
     client.release();
   }

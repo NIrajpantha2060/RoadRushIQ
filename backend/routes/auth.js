@@ -4,6 +4,7 @@ const bcrypt  = require('bcrypt');
 const jwt     = require('jsonwebtoken');
 const auth    = require('../middleware/auth');
 const pool    = require('../db');
+const progressionService = require('../services/progressionService');
 require('dotenv').config();
 
 const router = express.Router();
@@ -97,22 +98,11 @@ router.post('/login', async (req, res) => {
 // ── GET /auth/me ──────────────────────────────────────────
 router.get('/me', auth, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT
-         u.id, u.username, u.created_at,
-         ps.coins, ps.blue_diamonds, ps.red_diamonds,
-         ps.best_score, ps.total_runs, ps.total_coins_ever,
-         ps.selected_bike, ps.day_streak,
-         ps.last_claim_date, ps.claimed_days
-       FROM users u
-       LEFT JOIN player_stats ps ON ps.user_id = u.id
-       WHERE u.id = $1`,
-      [req.user.id]
-    );
-    if (result.rows.length === 0) {
+    const profile = await progressionService.getProfile(req.user.id);
+    if (!profile) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.json({ user: result.rows[0] });
+    res.json({ user: profile });
   } catch (err) {
     console.error('GET /me error:', err);
     res.status(500).json({ error: 'Server error' });
