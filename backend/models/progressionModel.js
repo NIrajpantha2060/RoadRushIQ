@@ -41,7 +41,14 @@ async function getPlayerProfile(client, userId) {
        ps.total_runs, ps.total_coins_ever,
        ps.total_xp, ps.level,
        ps.selected_bike, ps.day_streak,
-       ps.last_claim_date, ps.claimed_days,
+       ps.last_claim_at,
+       ps.last_claim_date,
+       CASE
+         WHEN COALESCE(ps.last_claim_at, ps.last_claim_date::timestamp) IS NOT NULL
+         THEN COALESCE(ps.last_claim_at, ps.last_claim_date::timestamp) + INTERVAL '1 day'
+         ELSE NULL
+       END AS next_available_at,
+       ps.claimed_days,
        ranked.rank
      FROM users u
      JOIN player_stats ps ON ps.user_id = u.id

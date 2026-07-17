@@ -18,6 +18,15 @@ const {
   setSelectedBike,
 } = require('../models/progressionModel');
 
+function toIsoString(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 function toProfilePayload(profileRow, unlockIds = []) {
   if (!profileRow) {
     return null;
@@ -32,6 +41,10 @@ function toProfilePayload(profileRow, unlockIds = []) {
 
   return {
     ...profileRow,
+    created_at: toIsoString(profileRow.created_at),
+    last_claim_at: toIsoString(profileRow.last_claim_at),
+    last_claim_date: profileRow.last_claim_date ? toIsoString(profileRow.last_claim_date) : null,
+    next_available_at: toIsoString(profileRow.next_available_at),
     progression,
     unlocks: buildUnlockStates(unlockIds),
   };

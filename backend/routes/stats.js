@@ -3,6 +3,7 @@ const express = require('express');
 const auth    = require('../middleware/auth');
 const pool    = require('../db');
 const progressionController = require('../controllers/progressionController');
+const progressionService = require('../services/progressionService');
 
 const router = express.Router();
 
@@ -29,9 +30,14 @@ router.post('/unlock', progressionController.unlockItem);
 // Body: { day, type, amount }  — validated server-side
 router.post('/daily-claim', async (req, res) => {
   const { day, type, amount } = req.body;
+  const rewardDay = Number(day);
+  const rewardAmount = Number(amount);
+
+  const toIsoDate = (value) => (value ? new Date(value).toISOString().split('T')[0] : null);
+  const getNextDay = (currentDay) => (currentDay < 7 ? currentDay + 1 : 1);
 
   // Validate inputs
-  if (!day || !type || !amount) {
+  if (!rewardDay || !type || !rewardAmount) {
     return res.status(400).json({ error: 'Missing day, type or amount' });
   }
 
@@ -45,15 +51,15 @@ router.post('/daily-claim', async (req, res) => {
     7: { type: 'red',   amount: 3    },
   };
 
-  const expected = VALID_REWARDS[day];
-  if (!expected || expected.type !== type || expected.amount !== amount) {
+  const expected = VALID_REWARDS[rewardDay];
+  if (!expected || expected.type !== type || expected.amount !== rewardAmount) {
     return res.status(400).json({ error: 'Invalid reward claim' });
   }
 
   try {
     // Get current stats
     const current = await pool.query(
-      `SELECT day_streak, last_claim_date, claimed_days
+      `SELECT day_streak, last_claim_at, last_claim_date, claimed_days
        FROM player_stats WHERE user_id = $1`,
       [req.user.id]
     );
@@ -63,44 +69,40 @@ router.post('/daily-claim', async (req, res) => {
     }
 
     const stats       = current.rows[0];
-    const today       = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const lastClaim   = stats.last_claim_date
-      ? new Date(stats.last_claim_date).toISOString().split('T')[0]
-      : null;
-    const claimedDays = stats.claimed_days ?? [];
+    const now         = new Date();
+    const lastClaimAt = stats.last_claim_at
+      ? new Date(stats.last_claim_at)
+      : (stats.last_claim_date ? new Date(stats.last_claim_date) : null);
+    const nextAvailableAt = lastClaimAt ? new Date(lastClaimAt.getTime() + 86400000) : null;
+    const claimedDays = Array.isArray(stats.claimed_days) ? stats.claimed_days.map(Number) : [];
 
-    // Already claimed today?
-    if (lastClaim === today) {
-      return res.status(400).json({ error: 'Already claimed today' });
+    // Still within the 24-hour cooldown window?
+    if (nextAvailableAt && now < nextAvailableAt) {
+      return res.status(400).json({
+        error: 'Reward already claimed. Come back tomorrow.',
+        nextAvailableAt: nextAvailableAt.toISOString(),
+      });
     }
 
-    // Already claimed this day number?
-    if (claimedDays.includes(day)) {
-      return res.status(400).json({ error: `Day ${day} already claimed` });
+    const expectedDay = lastClaimAt ? getNextDay(stats.day_streak ?? 1) : 1;
+
+    if (rewardDay !== expectedDay) {
+      return res.status(400).json({ error: `Day ${expectedDay} is the next claimable reward` });
     }
 
-    // Check streak continuity
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yStr = yesterday.toISOString().split('T')[0];
+    const newStreak = expectedDay;
+    const newClaimed = expectedDay !== 1
+      ? [...claimedDays, rewardDay]
+      : [rewardDay];
 
-    let newStreak    = stats.day_streak ?? 1;
-    let newClaimed   = [...claimedDays, day];
-
-    // If last claim wasn't yesterday → reset streak
-    if (lastClaim !== yStr && lastClaim !== null) {
-      newStreak  = 1;
-      newClaimed = [day];
-    }
-
-    // Figure out next day
-    const nextDay = day < 7 ? day + 1 : 1;
+    // Figure out the next day in the seven-day loop.
+    const nextDay = getNextDay(expectedDay);
 
     // Build the currency update
     let coinDelta = 0, blueDelta = 0, redDelta = 0;
-    if (type === 'coins') coinDelta = amount;
-    if (type === 'blue')  blueDelta = amount;
-    if (type === 'red')   redDelta  = amount;
+    if (type === 'coins') coinDelta = rewardAmount;
+    if (type === 'blue')  blueDelta = rewardAmount;
+    if (type === 'red')   redDelta  = rewardAmount;
 
     const updated = await pool.query(
       `UPDATE player_stats SET
@@ -108,17 +110,25 @@ router.post('/daily-claim', async (req, res) => {
          blue_diamonds = blue_diamonds + $2,
          red_diamonds  = red_diamonds + $3,
          day_streak    = $4,
-         last_claim_date = $5,
-         claimed_days  = $6::jsonb
-       WHERE user_id = $7
-       RETURNING coins, blue_diamonds, red_diamonds, day_streak, claimed_days`,
-      [coinDelta, blueDelta, redDelta, newStreak, today, JSON.stringify(newClaimed), req.user.id]
+           last_claim_at = $5,
+           last_claim_date = $6,
+           claimed_days  = $7::jsonb
+         WHERE user_id = $8
+         RETURNING coins, blue_diamonds, red_diamonds, day_streak, last_claim_at, claimed_days`,
+        [coinDelta, blueDelta, redDelta, newStreak, now, now.toISOString().split('T')[0], JSON.stringify(newClaimed), req.user.id]
     );
+
+    const profile = await progressionService.getProfile(req.user.id);
+    const nextClaimAt = updated.rows[0]?.last_claim_at
+      ? new Date(updated.rows[0].last_claim_at.getTime() + 86400000)
+      : null;
 
     res.json({
       message:    'Reward claimed!',
       nextDay,
-      claimedDay: day,
+      claimedDay: rewardDay,
+      nextAvailableAt: nextClaimAt ? nextClaimAt.toISOString() : null,
+      profile,
       stats:      updated.rows[0],
     });
   } catch (err) {

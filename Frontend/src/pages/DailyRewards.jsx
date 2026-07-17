@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FaCoins, FaGem, FaTimes, FaPlay } from 'react-icons/fa';
 import { MdDiamond } from 'react-icons/md';
+import { claimDailyReward } from '../api/api';
 import '../css/DailyRewards.css';
 
 const DAILY_REWARDS = [
@@ -21,6 +22,32 @@ function RewardIcon({ type, size }) {
   if (type === 'blue')  return <FaGem     style={{ fontSize: s, color: '#00c3ff' }} />;
   if (type === 'red')   return <MdDiamond style={{ fontSize: s, color: '#ff4d6d' }} />;
   return null;
+}
+
+function toIsoDate(value) {
+  return value ? new Date(value).toISOString().split('T')[0] : null;
+}
+
+function getNextDay(day) {
+  return day < 7 ? day + 1 : 1;
+}
+
+function getRewardState(user) {
+  const claimedDays = Array.isArray(user?.claimed_days) ? user.claimed_days.map(Number) : [];
+  const streakDay = user?.day_streak ?? 1;
+  const nextAvailableAt = user?.next_available_at ? new Date(user.next_available_at) : null;
+  const coolingDown = nextAvailableAt ? Date.now() < nextAvailableAt.getTime() : false;
+  const latestClaimedDay = claimedDays.length > 0 ? claimedDays[claimedDays.length - 1] : 1;
+  const currentDay = !user?.last_claim_at
+    ? 1
+    : (coolingDown ? latestClaimedDay : getNextDay(streakDay));
+
+  return {
+    currentDay,
+    claimedDays,
+    claimedToday: coolingDown,
+    nextAvailableAt,
+  };
 }
 
 function AdOverlay({ videoId, adsWatched, adsRequired, onAdComplete, onClose }) {
@@ -64,31 +91,29 @@ function AdOverlay({ videoId, adsWatched, adsRequired, onAdComplete, onClose }) 
   );
 }
 
-function DailyRewards({ onClose, onRewardClaimed }) {
-  const [currentDay, setCurrentDay] = useState(function() {
-    var saved = localStorage.getItem('dr_current_day');
-    return saved ? parseInt(saved, 10) : 1;
-  });
-  const [claimedDays, setClaimedDays] = useState(function() {
-    var saved = localStorage.getItem('dr_claimed_days');
-    return saved ? JSON.parse(saved) : [];
-  });
+function DailyRewards({ user, onClose, onRewardClaimed, onUserRefresh }) {
   const [showingAd,   setShowingAd]   = useState(false);
   const [adTarget,    setAdTarget]    = useState(null);
   const [adsWatched,  setAdsWatched]  = useState(0);
   const [justClaimed, setJustClaimed] = useState(null);
 
-  var todayReward  = DAILY_REWARDS.find(function(r) { return r.day === currentDay; });
+  const rewardState = getRewardState(user);
+  const currentDay = rewardState.currentDay;
+  const claimedDays = rewardState.claimedDays;
+  const claimedToday = rewardState.claimedToday;
+  const nextAvailableAt = rewardState.nextAvailableAt;
+  const todayReward  = DAILY_REWARDS.find(function(r) { return r.day === currentDay; });
 
   function handleClaimClick(reward) {
     if (claimedDays.includes(reward.day)) return;
+    if (claimedToday) return;
     if (reward.day !== currentDay) return;
     setAdTarget(reward);
     setAdsWatched(0);
     setShowingAd(true);
   }
 
-  function handleAdComplete() {
+  async function handleAdComplete() {
     var newCount = adsWatched + 1;
     if (newCount < adTarget.adsRequired) {
       setAdsWatched(newCount);
@@ -96,17 +121,29 @@ function DailyRewards({ onClose, onRewardClaimed }) {
       setTimeout(function() { setShowingAd(true); }, 600);
     } else {
       setShowingAd(false);
-      var newClaimed = claimedDays.concat([adTarget.day]);
-      setClaimedDays(newClaimed);
-      setJustClaimed(adTarget.day);
-      localStorage.setItem('dr_claimed_days', JSON.stringify(newClaimed));
-      var nextDay = currentDay < 7 ? currentDay + 1 : 1;
-      setCurrentDay(nextDay);
-      localStorage.setItem('dr_current_day', String(nextDay));
-      if (onRewardClaimed) onRewardClaimed({ type: adTarget.type, amount: adTarget.amount });
-      setTimeout(function() { setJustClaimed(null); }, 2000);
-      setAdTarget(null);
-      setAdsWatched(0);
+
+      try {
+        const response = await claimDailyReward({
+          day: adTarget.day,
+          type: adTarget.type,
+          amount: adTarget.amount,
+        });
+
+        setJustClaimed(adTarget.day);
+        if (response?.profile && onUserRefresh) {
+          onUserRefresh(response.profile);
+        }
+        if (onRewardClaimed) {
+          onRewardClaimed(response);
+        }
+      } catch (err) {
+        console.error('Failed to claim daily reward:', err);
+        setJustClaimed(null);
+      } finally {
+        setTimeout(function() { setJustClaimed(null); }, 2000);
+        setAdTarget(null);
+        setAdsWatched(0);
+      }
     }
   }
 
@@ -131,15 +168,19 @@ function DailyRewards({ onClose, onRewardClaimed }) {
         </div>
 
         <div className="dr-streak-bar">
-          <span className="dr-streak-label">🔥 Day {currentDay} streak</span>
-          <span className="dr-streak-sub">Come back daily to keep your streak!</span>
+          <span className="dr-streak-label">🔥 Day {currentDay} {claimedToday ? 'claimed' : 'streak'}</span>
+          <span className="dr-streak-sub">
+            {claimedToday
+              ? `Next reward available ${nextAvailableAt ? nextAvailableAt.toLocaleString() : 'tomorrow'}.`
+              : 'Come back daily to keep your streak!'}
+          </span>
         </div>
 
         <div className="dr-grid">
           {DAILY_REWARDS.map(function(reward) {
             var isClaimed = claimedDays.includes(reward.day);
-            var isToday   = reward.day === currentDay;
-            var isLocked  = reward.day > currentDay;
+            var isToday   = !claimedToday && reward.day === currentDay;
+            var isLocked  = reward.day > currentDay || (claimedToday && reward.day === currentDay);
             var isJust    = justClaimed === reward.day;
             var classes   = [
               'dr-day-card',

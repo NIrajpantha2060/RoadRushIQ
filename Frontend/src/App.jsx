@@ -15,48 +15,60 @@ export default function App() {
   const [gameKey,      setGameKey]      = useState(0);
   const [user,         setUser]         = useState(null);
 
+  const applyUserProfile = useCallback((profile) => {
+    if (!profile) return;
+    setUser(profile);
+    if (profile.selected_bike) {
+      setSelectedBike(profile.selected_bike);
+    }
+  }, []);
+
   const persistRunAndRefresh = useCallback(async (runSummary) => {
     if (!runSummary) return;
 
     try {
       const response = await saveRun(runSummary);
       if (response?.profile) {
-        setUser(response.profile);
+        applyUserProfile(response.profile);
       } else {
         const me = await getMe();
-        setUser(me);
+        applyUserProfile(me);
       }
     } catch (err) {
       console.error('Failed to persist run stats:', err);
     }
-  }, []);
+  }, [applyUserProfile]);
 
   const handleUnlockItem = useCallback(async (unlockId) => {
     try {
       const response = await unlockItemApi(unlockId);
       if (response?.profile) {
-        setUser(response.profile);
+        applyUserProfile(response.profile);
       }
       return response;
     } catch (err) {
       console.error('Failed to unlock item:', err);
       throw err;
     }
-  }, []);
+  }, [applyUserProfile]);
 
   const handleBikeSelect = useCallback(async (bikeId) => {
     try {
       const response = await selectBikeApi(bikeId);
       setSelectedBike(bikeId);
       if (response?.profile) {
-        setUser(response.profile);
+        applyUserProfile(response.profile);
       }
       return response;
     } catch (err) {
       console.error('Failed to select bike:', err);
       throw err;
     }
-  }, []);
+  }, [applyUserProfile]);
+
+  const handleUserUpdated = useCallback((profile) => {
+    applyUserProfile(profile);
+  }, [applyUserProfile]);
 
   // Called when LoadingScreen finishes
   const handleLoadingDone = useCallback(async () => {
@@ -67,26 +79,24 @@ export default function App() {
     }
     try {
       const me = await getMe();
-      setUser(me);
-      if (me.selected_bike) setSelectedBike(me.selected_bike);
+      applyUserProfile(me);
       setScreen('home');
     } catch {
       localStorage.removeItem('rr_token');
       setScreen('login');
     }
-  }, []);
+  }, [applyUserProfile]);
 
   // Called after successful login or signup
   const handleAuthSuccess = useCallback(async () => {
     try {
       const me = await getMe();
-      setUser(me);
-      if (me.selected_bike) setSelectedBike(me.selected_bike);
+      applyUserProfile(me);
       setScreen('home');
     } catch {
       setScreen('login');
     }
-  }, []);
+  }, [applyUserProfile]);
 
   const handlePlay = useCallback((modeId) => {
     setTrafficMode(modeId);
@@ -125,6 +135,7 @@ export default function App() {
       onBikeSelect={handleBikeSelect}
       onUnlockItem={handleUnlockItem}
       user={user}
+      onUserUpdated={handleUserUpdated}
     />
   );
 }

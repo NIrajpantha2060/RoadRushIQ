@@ -210,7 +210,7 @@ function ProgressionStrip({ progression = {} }) {
 }
 
 // ── HomeScreen ─────────────────────────────────────────────────────────────
-function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, onUnlockItem, user }) {
+function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, onUnlockItem, user, onUserUpdated }) {
   const [activeTab,       setActiveTab]       = useState('home');
   const [showModeModal,   setShowModeModal]   = useState(false);
   const [showDailyRewards, setShowDailyRewards] = useState(false);
@@ -256,9 +256,10 @@ function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, onUnlockIt
   const handleModeSelect = (modeId) => { setShowModeModal(false); onPlay(modeId); };
   const handleModalClose = () => setShowModeModal(false);
 
-  const handleRewardClaimed = ({ type, amount }) => {
-    // TODO: persist to backend; for now just console
-    console.log(`Daily reward claimed: +${amount} ${type}`);
+  const handleRewardClaimed = (response) => {
+    if (response?.profile && onUserUpdated) {
+      onUserUpdated(response.profile);
+    }
   };
 
   return (
@@ -354,7 +355,10 @@ function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, onUnlockIt
 
           {activeBikeData.power ? (
             <div className="hs-active-power-hint" style={{ '--hint-color': activeBikeData.power.color }}>
-              <activeBikeData.power.icon style={{ fontSize: 13 }} />
+              {(() => {
+                const PowerIcon = getBikePowerIcon(activeBikeData.power.name);
+                return PowerIcon ? <PowerIcon style={{ fontSize: 13 }} /> : null;
+              })()}
               <span>
                 <strong>{activeBikeData.power.name}</strong> — press SPACE in-game
               </span>
@@ -420,8 +424,10 @@ function HomeScreen({ onPlay, selectedBike = 'skooter', onBikeSelect, onUnlockIt
       {/* ── DAILY REWARDS MODAL ── */}
       {showDailyRewards && (
         <DailyRewards
+          user={user}
           onClose={() => setShowDailyRewards(false)}
           onRewardClaimed={handleRewardClaimed}
+          onUserRefresh={onUserUpdated}
         />
       )}
     </div>

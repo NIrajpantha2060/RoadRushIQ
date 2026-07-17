@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS player_stats (
   total_coins_ever   INTEGER DEFAULT 0,
   selected_bike      VARCHAR(50) DEFAULT 'skooter',
   day_streak         INTEGER DEFAULT 1,
+  last_claim_at      TIMESTAMP,
   last_claim_date    DATE,
   claimed_days       JSONB DEFAULT '[]',
   updated_at         TIMESTAMP DEFAULT NOW()
@@ -89,6 +90,9 @@ ALTER TABLE player_stats
 
 ALTER TABLE player_stats
   ADD COLUMN IF NOT EXISTS total_xp INTEGER DEFAULT 0;
+
+ALTER TABLE player_stats
+  ADD COLUMN IF NOT EXISTS last_claim_at TIMESTAMP;
 
 -- ── Run History ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS run_history (
